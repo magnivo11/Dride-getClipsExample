@@ -50,6 +50,8 @@ func main() {
                             false }}
 
     exampleResponse := response{exampleVideos}
+
+    //setting up router
     router := gin.Default()
 	router.SetTrustedProxies([]string{"192.168.10.1"})
 
