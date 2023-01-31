@@ -2,7 +2,6 @@ package main
 
 import ( "net/http"
         "github.com/gin-gonic/gin"
-            "fmt"
             "io/ioutil"
             "strconv"
             "time"
@@ -36,33 +35,10 @@ type response struct{
 }
 
 func main() {
-
-    //examples 
-    exampleEvents := [] event {
-                     { "buttonPress",
-                        1629730257 }}
-    
-    exampleClips := [] clip { 
-                    { "front",
-                      "http://192.168.10.1/recordings/10510/videos/0.mp4",
-                      "http://192.168.10.1/recordings/10510/thumbs/0.jpg",
-                      "5f039b4ef0058a1d652f13d612375a5b" }}
-
-    exampleVideos := [] video {
-                     { "10510", 
-                        "10510",
-                        exampleClips,
-                        "http://192.168.10.1/recordings/10510/route.geojson",
-                        true,
-                        exampleEvents,
-                        false }}
-
-    exampleResponse := response{exampleVideos}
-
-////////////////////////////////////////////////////////////
    
     baseUrl := "http://192.168.10.1"
     recordingsPath := "./recordings"
+    AuthorizationToken := "TOKEN_STRING_HERE"
 
     //setting up router
     router := gin.Default()
@@ -70,12 +46,16 @@ func main() {
 
     //getClips entry point
 	router.GET("/getClips/", func(c *gin.Context) {
-         if(c.GetHeader("Authorization")=="TOKEN_STRING_HERE"){
-            //Authorized 
-          
-            // get timeStamp params and checks validation 
-            //if fromTimestamp is empty it will be assogned with 0 
-            //if untilTimestamp is empty it will be assigned with current time stamp
+
+        // checking for authorization token 
+         if(c.GetHeader("Authorization")!=AuthorizationToken){
+                c.IndentedJSON(http.StatusUnauthorized,"Unauthorized")
+                return
+         }
+
+         // get timeStamp params and checks validation 
+         //if fromTimestamp is empty it will be assogned with 0 
+         //if untilTimestamp is empty it will be assigned with current time stamp
 
             fromTimeStamp := c.Query("fromTimestamp")
             untilTimeStamp := c.Query("untilTimestamp")
@@ -83,21 +63,21 @@ func main() {
             if fromTimeStamp != ""{
                 _, err1 := strconv.Atoi(fromTimeStamp) 
                 if err1 != nil {
-                    c.IndentedJSON(http.StatusUnprocessableEntity,"Please insert a valid timeStamp")
+                    c.IndentedJSON(http.StatusUnprocessableEntity,"Please insert a valid timeStamp : fromTimestamp")
                     return
                 }
-            } else{
+            } else {
                 fromTimeStamp = "0"
             }
 
             if untilTimeStamp != ""{
                 _, err2 := strconv.Atoi(untilTimeStamp) 
                 if err2 != nil {
-                    c.IndentedJSON(http.StatusUnprocessableEntity,"Please insert a valid timeStamp")
+                    c.IndentedJSON(http.StatusUnprocessableEntity,"Please insert a valid timeStamp : untilTimestamp")
                     return 
                 
                 }
-            } else{
+            } else {
                 untilTimeStamp = strconv.FormatInt((time.Now().Unix()),10)
             }
 
@@ -106,7 +86,8 @@ func main() {
           
             videosDir, err := ioutil.ReadDir(recordingsPath)
 	            if err != nil {
-		             fmt.Println(err)
+                    c.IndentedJSON(http.StatusInternalServerError,"something went wrong")
+                    return
 	            }
 
             // Creating a videos object for every directory
@@ -134,16 +115,16 @@ func main() {
                     var clips [] clip
                     clipPath := videoPath+"/videos"
 
-                    subDirs, err := ioutil.ReadDir(clipPath)
+                    files, err := ioutil.ReadDir(clipPath)
                         if err != nil {
                             c.IndentedJSON(http.StatusInternalServerError,"something went wrong")
                             return
 	                     }
             
-                    for _, sb := range subDirs{
+                    for _, file := range files{
                         var currentClip clip
-                        currentClip.VideoSrc = baseUrl+videoPath+"/videos/"+sb.Name()
-                        currentClip.ThumbSrc = baseUrl+videoPath+"/thumbs/"+sb.Name()
+                        currentClip.VideoSrc = baseUrl+videoPath+"/videos/"+file.Name()
+                        currentClip.ThumbSrc = baseUrl+videoPath+"/thumbs/"+file.Name()
                         clips = append(clips,currentClip)
                     }
 
@@ -154,14 +135,8 @@ func main() {
 	            }
              }
             
-            exampleResponse = response{videos}
+            exampleResponse := response{videos}
             c.IndentedJSON(http.StatusOK,exampleResponse)
-
-        } else {
-            //UnAuthorized 
-            c.IndentedJSON(http.StatusUnauthorized,"Unauthorized")
-        }
-
 		
 	})
     //Running server
