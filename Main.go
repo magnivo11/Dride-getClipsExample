@@ -5,6 +5,7 @@ import ( "net/http"
             "io/ioutil"
             "strconv"
             "time"
+            "path/filepath"
             // "github.com/codingsince1985/checksum"
         )
 
@@ -36,7 +37,6 @@ type response struct{
 
 func main() {
    
-    baseUrl := "http://192.168.10.1"
     recordingsPath := "./recordings"
     AuthorizationToken := "TOKEN_STRING_HERE"
 
@@ -107,7 +107,8 @@ func main() {
 	                }
                     for _, d := range dirs{
                         if !d.IsDir() {
-                            currentVideo.Gpx = baseUrl+videoPath+"/"+d.Name()
+                            abs,_ := filepath.Abs(videoPath+"/"+d.Name())
+                            currentVideo.Gpx = abs
                         }
                     }     
                     //crating clips for every video
@@ -123,8 +124,10 @@ func main() {
             
                     for _, file := range files{
                         var currentClip clip
-                        currentClip.VideoSrc = baseUrl+videoPath+"/videos/"+file.Name()
-                        currentClip.ThumbSrc = baseUrl+videoPath+"/thumbs/"+file.Name()
+                        absVid,_ := filepath.Abs(videoPath+"/videos/"+file.Name())
+                        absThmb,_ := filepath.Abs(videoPath+"/thumbs/"+file.Name())
+                        currentClip.VideoSrc = absVid
+                        currentClip.ThumbSrc = absThmb
                         clips = append(clips,currentClip)
                     }
 
